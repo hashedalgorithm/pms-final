@@ -53,7 +53,7 @@ def add_application_password_pair(
         conn, cursor = dbConn.get_connection()
 
         affected = cursor.execute(
-            "INSERT INTO `nextgensec_pass`(`username`, `password`, `application_name`) VALUES (%s,%s,%s)", (
+            "INSERT INTO `pms`(`username`, `password`, `application_name`) VALUES (%s,%s,%s)", (
                 username, password, application_name)
         )
 
@@ -78,7 +78,7 @@ def update_application_password(
         conn, cursor = dbConn.get_connection()
 
         affected = cursor.execute(
-            "UPDATE `nextgensec_pass` SET `password`=%s WHERE `username`=%s AND `application_name`=%s", (
+            "UPDATE `pms` SET `password`=%s WHERE `username`=%s AND `application_name`=%s", (
                 password, username, application_name)
         )
 
@@ -100,7 +100,7 @@ async def update_all_application_passwords(
     try:
         conn, cursor = dbConn.get_connection()
 
-        cursor.execute("SELECT `id`, `password` FROM `nextgensec_pass`")
+        cursor.execute("SELECT `id`, `password` FROM `pms`")
         _cursor = cursor
 
         for row in _cursor:
@@ -113,7 +113,7 @@ async def update_all_application_passwords(
                         _password[0]) > 0
 
             cursor.execute(
-                "UPDATE `nextgensec_pass` SET `password`=%s WHERE `id`=%s",
+                "UPDATE `pms` SET `password`=%s WHERE `id`=%s",
                 (_password, row[0])  # type: ignore
             )
 
@@ -134,7 +134,7 @@ def get_all_application_password_pairs(
 
         conn, cursor = dbConn.get_connection()
         affected = cursor.execute(
-            "SELECT * FROM nextgensec_pass WHERE username=%s",
+            "SELECT * FROM pms WHERE username=%s",
             (username),
         )
 

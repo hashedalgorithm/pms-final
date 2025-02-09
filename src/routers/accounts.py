@@ -18,7 +18,7 @@ def add_application_creds(username: str, application_name: str, password: str, a
         if not raw:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid token, please login again",
+                detail="Server Error - Forbidden",
             )
 
         user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
@@ -26,7 +26,7 @@ def add_application_creds(username: str, application_name: str, password: str, a
         if (user_model.access_level.value != AccessLevel.admin.value):
             raise HTTPException(
                 status_code=401,
-                detail="Only admins can access this API",
+                detail="Server Error - Forbidden",
             )
 
         passwords = dbMethods.add_application_password_pair(
@@ -35,14 +35,14 @@ def add_application_creds(username: str, application_name: str, password: str, a
         if (not passwords):
             raise HTTPException(
                 status_code=500,
-                detail="Something went wrong when setting application password.",
+                detail="Server Error",
             )
 
         return {"message": "Application password set successfully"}
     except:
         raise HTTPException(
             status_code=500,
-            detail="Something went wrong when setting application password.",
+            detail="Server Error",
         )
 
 
@@ -55,7 +55,7 @@ def get_application_creds(authorize: AuthJWT = Depends()):
         if not raw:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid token, please login again",
+                detail="Server Error - Forbidden",
             )
 
         user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
@@ -86,7 +86,7 @@ def add_user(username: str, password: str, access_level: AccessLevel, authorize:
         if not raw:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid token, please login again",
+                detail="Server Error",
             )
 
         user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
@@ -94,24 +94,25 @@ def add_user(username: str, password: str, access_level: AccessLevel, authorize:
         if (user_model.access_level.value != AccessLevel.admin.value):
             raise HTTPException(
                 status_code=401,
-                detail="Only admins can access this API",
+                detail="Server Error - Forbidden",
             )
 
         policy = dbMethods.get_policy()
 
         if not policy:
-            raise
+            raise HTTPException(
+                status_code=500, detail="Internal Server Error")
 
         if (not passwordMethods.validate_password(password, policy)):
             raise HTTPException(
                 status_code=401,
-                detail="Password does not meet current password requirements.",
+                detail="Server Error - Password does not meet current password requirements.",
             )
 
         if (passwordMethods.check_leaks_via_HIBP(password) > 0):
             raise HTTPException(
                 status_code=401,
-                detail="Password has appeared in leaks online, please use a different one.",
+                detail="Server Error - Password is leaked previously!",
             )
 
         ret_code, message = dbMethods.add_user(
@@ -128,7 +129,7 @@ def add_user(username: str, password: str, access_level: AccessLevel, authorize:
     except:
         raise HTTPException(
             status_code=500,
-            detail="Something went wrong",
+            detail="Internal Server Error",
         )
 
 
@@ -141,7 +142,7 @@ def change_user_password(password: str, authorize: AuthJWT = Depends()):
         if not raw:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid token, please login again",
+                detail="Server Error - Forbidden",
             )
 
         user_model = UserModel.parse_raw(raw["claims"])  # type: ignore

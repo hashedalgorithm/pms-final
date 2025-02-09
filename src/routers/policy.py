@@ -22,7 +22,6 @@ def set_policy(
     min_digits: int = 1,
     min_symbols: int = 1,
     min_length: int = 8,
-    allowed_symbols: str = "!@#$%&_+",
     authorize: AuthJWT = Depends(),
 ):
     try:
@@ -32,15 +31,15 @@ def set_policy(
         if not raw:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid token, please try again",
+                detail="Server Error - Forbidden",
             )
 
         user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
 
-        if(user_model.access_level.value != AccessLevel.admin.value):
+        if (user_model.access_level.value != AccessLevel.admin.value):
             raise HTTPException(
                 status_code=401,
-                detail="Only admins can access this API",
+                detail="Server Error - Forbidden",
             )
 
         if (
@@ -49,18 +48,14 @@ def set_policy(
             or min_digits == None
             or min_symbols == None
             or min_length == None
-            or allowed_symbols == None
         ):
             return HTTPException(
                 status_code=500,
                 detail="Missing parameters",
             )
 
-        # TODO: Add other potential errors and return corresponding error messages.
-        # Create a PolicyModel from the API arguments
         policy_model = PolicyModel(
             id=uuid.uuid4(),
-            allowed_symbols=allowed_symbols,
             created_at=datetime.utcnow().timestamp(),
             created_by=CreatedBy(admin_id=uuid.uuid4()),
             rules=Rules(
@@ -75,18 +70,10 @@ def set_policy(
         # Store the created PolicyModel via DB methods
         result = dbMethods.add_policy(policy_model)
 
-        if result:
-            _ = dbMethods.set_all_accounts_as_temp()
-            global_scheduler.add_job(dbMethods.lock_all_temp_accounts, 'date', run_date=datetime.now() + timedelta(hours=24))
-            global_scheduler.start()
-            _ = dbMethods.update_all_application_passwords(policy_model)
-            return {"message": "Policy Updated",}
-        else:
-            raise
     except:
         raise HTTPException(
             status_code=500,
-            detail="Something went wrong when fetching the password policy",
+            detail="Internal Server Error",
         )
 
 
@@ -108,5 +95,5 @@ def get_policy(
     except:
         raise HTTPException(
             status_code=500,
-            detail="Something went wrong when fetching the password policy",
+            detail="Internal Server Error",
         )

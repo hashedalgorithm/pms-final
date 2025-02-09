@@ -32,7 +32,7 @@ def release_connection(connection: Connection, cursor: Cursor):
 
 
 def create_connection():
-    return pymysql.connect(host="localhost", user="root", database="nextgensec_pms")
+    return pymysql.connect(host="localhost", user="root", database="pms")
 
 
 def close_connection(connection: Connection):
