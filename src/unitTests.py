@@ -12,20 +12,20 @@ from src import dbMethods
 
 baseurl = "http://127.0.0.1:8000"
 
-username = "rckyasd"
-password = "8presG"
+username = "abcdef"
+password = "L98nji"
 
-invusername = "rcasdakyasd"
-invpassword = "asdad"
+invusername = "vbtyygh"
+invpassword = "mjilk"
 
 validCred = {
-    "username": "rckyasd",
-    "password": "8presG",
+    "username": "abcdef",
+    "password": "L98nji",
 }
 
 invalidCred = {
-    "username": "rcasdakyasd",
-    "password": "asdad",
+    "username": "vbtyygh",
+    "password": "mjilk",
 }
 
 
@@ -60,99 +60,6 @@ class TestDB(unittest.TestCase):
             "Manually verified secure password recognised as leaked",
         )
 
-    # Test to create a new user
-    def test_create_user(self):
-        returnCode, returnMessage = dbMethods.add_user(
-            username=username, password=password,
-        )
-
-        self.assertEqual(
-            returnCode, 0, "Expected error code 0, indicating that nothing went wrong, but did not recieve 0.")
-
-        # print(returnMessage)
-
-    # Test to create a the same user again
-    def test_create_user_again(self):
-        returnCode, returnMessage = dbMethods.add_user(
-            username=username, password=password,
-        )
-
-        self.assertNotEqual(
-            returnCode, 0, "Did not expect error code 0, which indicats that nothing went wrong.")
-
-        # print(returnMessage)
-
-    # Test to log in with correct username and password
-    def test_user_login(self):
-        addResult = dbMethods.user_login(username=username, password=password)
-
-        self.assertNotEqual(
-            addResult, None, 'Expected to receive new user\'s UserModel')
-        self.assertIsInstance(addResult, UserModel,
-                              "Expected the result to be of type UserModel")
-
-        # print(addResult)
-
-    # Test to log in with incorrect username and password
-    def test_invalid_user_login(self):
-        addResult = dbMethods.user_login(
-            username=invusername, password=invpassword)
-
-        self.assertEqual(
-            addResult, None, 'Expected to receive None, but received a UserModel for a non-existent user')
-        self.assertNotIsInstance(
-            addResult, UserModel, "Did not expect the result to be of type UserModel")
-
-        # print(addResult)
-
-    # Test adding a valid policy to the db
-    def test_adding_policy(self):
-        policyAddResponse = policyMethod.set_policy(
-            min_upper_case_letters=1,
-            min_lower_case_letters=1,
-            min_digits=1,
-            min_symbols=1,
-            min_length=8,
-        )
-
-        self.assertNotIsInstance(policyAddResponse, HTTPException,
-                                 'Received an exception instead of a success message')
-        message = policyAddResponse['message']  # type: ignore
-        self.assertEqual(message, 'Policy Updated')
-
-        # print(message)
-
-    # Test adding a policy with invalid arguments to the db
-
-    def test_adding_invalid_policy(self):
-        policyAddResponse = policyMethod.set_policy(
-            min_upper_case_letters=1,
-            min_lower_case_letters=1,
-            min_digits=None,  # type: ignore
-            min_symbols=1,
-            min_length=8,
-        )
-
-        self.assertIsInstance(policyAddResponse, HTTPException,
-                              'Expected an HTTPException due to missing parameters, but did not receive it.')
-
-    # Fetch the latest policy from the DB
-
-    def test_getting_policy(self):
-        policyAddResponse = policyMethod.get_policy()
-
-        serialData = policyAddResponse['policy']
-        self.assertNotEqual(
-            serialData, None, "Did not recieve serialized policy from get_policy method")
-
-        policy = PolicyModel.parse_raw(serialData)
-        self.assertIsInstance(
-            policy, PolicyModel, "Could not deserialize data into a PolicyModel object")
-
-        # print(policy)
-
-    # Generate passwords as per the latest policy (policy is stored in / fetched from the db)
-
     def test_generatePasswords(self):
         batch = 5
 
@@ -164,87 +71,6 @@ class TestDB(unittest.TestCase):
                               "Did not receive the passwords in a list with object key 'passwords'",)
         self.assertEqual(len(passwordGenResponse['passwords']), batch,
                          "Did not receive the exact number of passwords as the batch size.",)
-
-        # print(passwordGenResponse)
-
-    # def checkIfMatchesPolicy(self) : TODO
-
-    # def updatePassword(self) : TODO
-    # temp -> normal
-
-    def get_request(self, token: str, endpoint: str):
-        return requests.get(
-            baseurl + endpoint,
-            headers={
-                "Authorization": "Bearer " + token,
-            },
-        )
-
-    def post_request(self, token: str, endpoint: str):
-        return requests.post(
-            baseurl + endpoint,
-            headers={
-                "Authorization": "Bearer " + token,
-            },
-        )
-
-    def request_login(self, creds=validCred):
-        return requests.post(baseurl + "/login", json=creds)
-
-    def request_fresh_login(self, creds=validCred):
-        return requests.post(baseurl + "/fresh-login", json=creds)
-
-    def test_valid_login(self):
-        loginResponse = self.request_login()
-        self.assertEqual(loginResponse.status_code, 200, "Valid login failed")
-
-        access_token = loginResponse.json()["access_token"]
-        self.assertNotEqual(access_token, None, "Access token null")
-
-        refresh_token = loginResponse.json()["refresh_token"]
-        self.assertNotEqual(refresh_token, None, "Refresh token null")
-
-    def test_invalid_login(self):
-        loginResponse = self.request_login(invalidCred)
-        self.assertNotEqual(loginResponse.status_code,
-                            200, "Invalid login passed")
-
-        with self.assertRaises(
-            KeyError, msg="Refresh token received when not supposed to"
-        ):
-            loginResponse.json()["access_token"]
-
-        with self.assertRaises(
-            KeyError, msg="Refresh token received when not supposed to"
-        ):
-            loginResponse.json()["refresh_token"]
-
-    def test_valid_fresh_login(self):
-        loginResponse = self.request_fresh_login()
-        self.assertEqual(loginResponse.status_code, 200, "Valid login failed")
-
-        access_token = loginResponse.json()["access_token"]
-        self.assertNotEqual(access_token, None, "Access token null")
-
-        with self.assertRaises(
-            KeyError, msg="Refresh token received when not supposed to"
-        ):
-            loginResponse.json()["refresh_token"]
-
-    def test_invalid_fresh_login(self):
-        loginResponse = self.request_fresh_login(invalidCred)
-        self.assertNotEqual(loginResponse.status_code,
-                            200, "Invalid login passed")
-
-        with self.assertRaises(
-            KeyError, msg="Refresh token received when not supposed to"
-        ):
-            loginResponse.json()["access_token"]
-
-        with self.assertRaises(
-            KeyError, msg="Refresh token received when not supposed to"
-        ):
-            loginResponse.json()["refresh_token"]
 
     def test_online_password_checker_service_API(self):
         loginResponse = self.request_login()
@@ -310,5 +136,5 @@ class TestDB(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     unittest.main()

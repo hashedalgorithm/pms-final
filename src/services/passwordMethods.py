@@ -57,66 +57,17 @@ def validate_password(password: str, policy: PolicyModel) -> bool:
 
 
 def generate_passwords(batch_size: int, policy: PolicyModel) -> Union[list[str], None]:
-    generators = [
-        __getUpperAlpha,
-        __getAlpha,
-        __getNumber,
-        __getSymbol,
-    ]
+    password = []
 
-    passwords: list[str] = []
+    password.append(random.choice(UPPER))
+    password.append(random.choice(LOWER))
+    password.append(random.choice(DIGITS))
+    password.append(random.choice(SPECIAL_CHARACTERS))
 
-    for _ in range(batch_size):
-        genPsk: str = ""
+    remaining_chars = UPPER + LOWER 
+    for _ in range(PASSWORD_LENGTH - 4):
+        password.append(random.choice(remaining_chars))
 
-        for _ in range(policy.rules.min_upper_case_letters):
-            genPsk += __getUpperAlpha()
-
-        for _ in range(policy.rules.min_lower_case_letters):
-            genPsk += __getAlpha()
-
-        for _ in range(policy.rules.min_digits):
-            genPsk += __getNumber()
-
-        for _ in range(policy.rules.min_symbols):
-            genPsk += __getSymbol()
-
-        while len(genPsk) < policy.rules.min_length:
-            # TODO: Use UUID as the index generator?
-            i = randint(0, len(generators)-1)
-            genPsk += generators[i](policy.allowed_symbols)
-
-        passchars = list(genPsk)
-        shuffle(passchars)
-        genPsk = "".join(passchars)
-        passwords.append(genPsk)
-
-    return passwords
-
-
-def __getAlpha(*args) -> str:
-    alphaMap = "abcdefghijklmnopqrstuvwxyz"
-    return alphaMap[__getRandomIndex(len(alphaMap))]
-
-
-def __getUpperAlpha(*args) -> str:
-
-    capAlphaMap = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    return capAlphaMap[__getRandomIndex(len(capAlphaMap))]
-
-
-def __getNumber(*args) -> str:
-    numberMap = "0123456789"
-    return numberMap[__getRandomIndex(len(numberMap))]
-
-
-def __getSymbol(*args) -> str:
-    symbolMap = "!@#$%^&*()_+-={}[];:<>,./?ß!"
-    return symbolMap[__getRandomIndex(len(symbolMap))]
-
-
-def __getRandomIndex(range: int) -> int:
-    now = str(time.time_ns())
-    randomNumber = int(now[11:13])
-    time.sleep(0.0000001)
-    return randomNumber % range
+    # Shuffle to avoid same patterns
+    random.shuffle(password)
+    return ''.join(password)
