@@ -1,11 +1,11 @@
-Run started:2025-02-09 18:56:43.829627
+Run started:2025-02-09 19:45:23.836161
 
 Test results:
 >> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
    Severity: Medium   Confidence: Medium
    CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
    More Info: https://bandit.readthedocs.io/en/1.8.2/plugins/b608_hardcoded_sql_expressions.html
-   Location: ./src/services/dbMethods.py:30:14
+   Location: ./src/services/dbMethods.py:30:12
 29	        cursor.execute(
 30	            f"SELECT * FROM nextgensec_mpass WHERE username = %s", (username))
 31	        dbConn.release_connection(conn, cursor)
