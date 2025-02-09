@@ -1,5 +1,5 @@
 import unittest
-from app.services import generatePassword, allowedSpecialCharacters
+from services.passwordMethods import generatePassword, allowedSpecialCharacters
 
 
 class TestPasswordService(unittest.TestCase):

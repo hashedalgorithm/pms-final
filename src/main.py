@@ -2,16 +2,13 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
-from routers import auth, password, policy, accounts, legacy
-from apscheduler.schedulers.background import BackgroundScheduler
+from routers import auth, password, policy, accounts
 
 app = FastAPI()
 app.include_router(policy.router)
 app.include_router(password.router)
 app.include_router(auth.router)
 app.include_router(accounts.router)
-
-global_scheduler = BackgroundScheduler()
 
 
 @app.exception_handler(AuthJWTException)

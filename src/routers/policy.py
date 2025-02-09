@@ -4,11 +4,10 @@ from time import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_jwt_auth import AuthJWT
-from main import global_scheduler
 from models.enums import AccessLevel
 from models.policyModel import CreatedBy, PolicyModel, Rules
 from models.userModel import UserModel
-from src import dbMethods
+import services.dbMethods as dbMethods
 
 router = APIRouter(
     tags=["policy"],
