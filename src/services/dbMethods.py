@@ -4,13 +4,12 @@ import uuid
 from typing import Tuple, Union
 
 import bcrypt
-import passwordMethods
 from decouple import config
 from models.applicationModel import ApplicationModel
 from models.enums import AccessLevel
 from models.policyModel import PolicyModel
 from models.userModel import UserModel
-from src import dbConn
+import services.dbConn as dbConn
 
 conn_queue = queue.Queue()
 max_connections = int(config("MAX_DB_CONNECTIONS", cast=int, default=5))

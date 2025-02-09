@@ -1,3 +1,7 @@
 __pycache__
 .env
 .scannerwork
+venv
+**/__pycache__/
+app/.DS_Store
+**/.DS_Store

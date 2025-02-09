@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_jwt_auth import AuthJWT
 from models.enums import AccessLevel
-from src import dbMethods, passwordMethods
+import services.dbMethods as dbMethods
+import services.passwordMethods as passwordMethods
 from models.userModel import UserModel
 
 router = APIRouter(
