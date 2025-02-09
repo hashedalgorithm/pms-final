@@ -8,7 +8,7 @@ from models.policyModel import PolicyModel
 from models.userModel import UserModel
 from routers import password as passwordMethod
 from routers import policy as policyMethod
-from src import dbMethods
+import services.dbMethods as dbMethods
 
 baseurl = "http://127.0.0.1:8000"
 

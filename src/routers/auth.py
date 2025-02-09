@@ -4,8 +4,8 @@ from fastapi_jwt_auth import AuthJWT
 from models.enums import AccessLevel
 from models.userModel import LoginModel, UserModel
 from pydantic import BaseSettings
-from src import redis_sessionlist as sessionlist
-from src.dbMethods import user_login
+import services.redis_sessionlist as sessionlist
+from services.dbMethods import user_login
 
 router = APIRouter(
     tags=["auth"],
