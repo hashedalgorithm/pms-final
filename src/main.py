@@ -10,9 +10,9 @@ app.include_router(policy.router)
 app.include_router(password.router)
 app.include_router(auth.router)
 app.include_router(accounts.router)
-app.include_router(legacy.router)
 
 global_scheduler = BackgroundScheduler()
+
 
 @app.exception_handler(AuthJWTException)
 def authjwt_exception_handler(request: Request, exc: AuthJWTException):

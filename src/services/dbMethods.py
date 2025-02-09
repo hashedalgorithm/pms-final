@@ -27,7 +27,8 @@ def user_login(username: str, password: str) -> Union[UserModel, None]:
         hashed_password = bcrypt.hashpw(pwd, salt)
 
         conn, cursor = dbConn.get_connection()
-        cursor.execute(f"SELECT * FROM nextgensec_mpass WHERE username = %s", (username))
+        cursor.execute(
+            f"SELECT * FROM nextgensec_mpass WHERE username = %s", (username))
         dbConn.release_connection(conn, cursor)
 
         for row in cursor:
@@ -50,9 +51,10 @@ def add_application_password_pair(
         username = re.sub(r"[^a-zA-Z0-9]", "", username)
 
         conn, cursor = dbConn.get_connection()
-        
+
         affected = cursor.execute(
-            "INSERT INTO `nextgensec_pass`(`username`, `password`, `application_name`) VALUES (%s,%s,%s)",(username, password, application_name)
+            "INSERT INTO `nextgensec_pass`(`username`, `password`, `application_name`) VALUES (%s,%s,%s)", (
+                username, password, application_name)
         )
 
         conn.commit()
@@ -76,7 +78,8 @@ def update_application_password(
         conn, cursor = dbConn.get_connection()
 
         affected = cursor.execute(
-            "UPDATE `nextgensec_pass` SET `password`=%s WHERE `username`=%s AND `application_name`=%s", (password, username, application_name)
+            "UPDATE `nextgensec_pass` SET `password`=%s WHERE `username`=%s AND `application_name`=%s", (
+                password, username, application_name)
         )
 
         conn.commit()
@@ -89,36 +92,6 @@ def update_application_password(
 
     except:
         return 1, "An error occured when updating the application password."
-
-
-def set_all_accounts_as_temp() -> Tuple[int, str]:
-    try:
-        conn, cursor = dbConn.get_connection()
-
-        cursor.execute("UPDATE `nextgensec_mpass` SET `account_status`='temp' WHERE `account_status`='normal'")
-
-        conn.commit()
-        dbConn.release_connection(conn, cursor)
-
-        return 0, "Application passwords updated successfully."
-
-    except:
-        return 1, "An error occured when rotating the application passwords."
-
-
-def lock_all_temp_accounts() -> Tuple[int, str]:
-    try:
-        conn, cursor = dbConn.get_connection()
-
-        cursor.execute("UPDATE `nextgensec_mpass` SET `account_status`='locked' WHERE `account_status`='temp'")
-
-        conn.commit()
-        dbConn.release_connection(conn, cursor)
-
-        return 0, "Temp accounts locked successfully."
-
-    except:
-        return 1, "An error occured when locking temp accounts."
 
 
 async def update_all_application_passwords(
@@ -136,11 +109,12 @@ async def update_all_application_passwords(
             while leaked:
                 _password = passwordMethods.generate_passwords(1, policy)
                 if _password:
-                    leaked = passwordMethods.check_leaks_via_HIBP(_password[0]) > 0
+                    leaked = passwordMethods.check_leaks_via_HIBP(
+                        _password[0]) > 0
 
             cursor.execute(
                 "UPDATE `nextgensec_pass` SET `password`=%s WHERE `id`=%s",
-                (_password, row[0]) #type: ignore
+                (_password, row[0])  # type: ignore
             )
 
         conn.commit()
@@ -200,7 +174,7 @@ def change_user_pass(
 
         conn, cursor = dbConn.get_connection()
         affected = cursor.execute(
-            "UPDATE nextgensec_mpass SET password=%s, account_status=%s WHERE username=%s",
+            "UPDATE nextgensec_mpass SET password=%s WHERE username=%s",
             (hashed_password, 'normal', username),
         )
 
@@ -214,35 +188,6 @@ def change_user_pass(
 
     except:
         return 1, "An error occured when updating the password."
-
-
-def unlock_account(
-    username: str, password: str,
-) -> Tuple[int, str]:
-    try:
-        username = re.sub(r"[^a-zA-Z0-9]", "", username)
-        password = re.sub(r"[^a-zA-Z0-9]", "", password)
-
-        pwd = password.encode("utf-8")
-
-        hashed_password = bcrypt.hashpw(pwd, salt)
-
-        conn, cursor = dbConn.get_connection()
-        affected = cursor.execute(
-            "UPDATE nextgensec_mpass SET password=%s, account_status=%s WHERE username=%s",
-            (hashed_password, 'temp', username),
-        )
-
-        conn.commit()
-        dbConn.release_connection(conn, cursor)
-
-        if affected == 1:
-            return 0, "Account unlocked successfully."
-        else:
-            return 1, "An error occured when unlocking the account."
-
-    except:
-        return 1, "An error occured when unlocking the account."
 
 
 def add_user(
@@ -278,7 +223,8 @@ def add_policy(policyModel: PolicyModel) -> bool:
     try:
         conn, cursor = dbConn.get_connection()
         affected = cursor.execute(
-            "INSERT INTO `nextgensec_policy`(`policy_json`) VALUES (%s)", (policyModel.json())
+            "INSERT INTO `nextgensec_policy`(`policy_json`) VALUES (%s)", (policyModel.json(
+            ))
         )
 
         conn.commit()
@@ -309,22 +255,3 @@ def get_policy() -> Union[PolicyModel, None]:
 
     except:
         return None
-
-
-def legacy_auth(username: str, password: str, application_name: str) -> Union[bool, None]:
-    try:
-        username = re.sub(r"[^a-zA-Z0-9]", "", username)
-        password = re.sub(r"[^a-zA-Z0-9]", "", password)
-
-        conn, cursor = dbConn.get_connection()
-        conn, cursor = dbConn.get_connection()
-        cursor.execute(f"SELECT `password` FROM `nextgensec_pass` WHERE username = %s AND application_name = %s", (username, application_name))
-        dbConn.release_connection(conn, cursor)
-
-        for row in cursor:
-            if row[0] == password:
-                return True
-        return False
-
-    except:
-        return False
