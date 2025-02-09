@@ -10,7 +10,7 @@ router = APIRouter(
 
 
 @router.get("/addApplicationCreds")
-def add_application_creds(username: str, application_name: str, password: str, authorize: AuthJWT = Depends()):
+def add_application_creds(username: str, app_name: str, password: str, authorize: AuthJWT = Depends()):
     try:
         authorize.jwt_required()
         raw = authorize.get_raw_jwt()
@@ -30,7 +30,7 @@ def add_application_creds(username: str, application_name: str, password: str, a
             )
 
         passwords = dbMethods.add_application_password_pair(
-            username, application_name, password)
+            username, app_name, password)
 
         if (not passwords):
             raise HTTPException(
