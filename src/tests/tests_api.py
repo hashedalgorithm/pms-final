@@ -20,7 +20,7 @@ class TestDB(unittest.TestCase):
             'password'
         )
 
-        leak_count = checker_response["leak_count"]Ø
+        leak_count = checker_response["leak_count"]
         self.assertNotEqual(leak_count, None, "Leak count null")
 
         self.assertNotEqual(
