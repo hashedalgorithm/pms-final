@@ -33,7 +33,7 @@ def login(loginUser: LoginModel, authorize: AuthJWT = Depends()):
         user_model: UserModel
 
         login_result = user_login(
-            username=loginUser.username, password=loginUser.password)
+            u_name=loginUser.username, password=loginUser.password)
         if login_result:
             user_model = login_result
         else:
@@ -75,7 +75,7 @@ def fresh_login(loginUser: LoginModel, authorize: AuthJWT = Depends()):
         user_model: UserModel
 
         login_result = user_login(
-            username=loginUser.username, password=loginUser.password)
+            u_name=loginUser.username, password=loginUser.password)
         if login_result:
             user_model = login_result
         else:
