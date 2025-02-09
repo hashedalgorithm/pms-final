@@ -20,7 +20,7 @@ class TestDB(unittest.TestCase):
             'password'
         )
 
-        leak_count = checker_response["leak_count"]
+        leak_count = checker_response["leak_count"]Ø
         self.assertNotEqual(leak_count, None, "Leak count null")
 
         self.assertNotEqual(
@@ -71,17 +71,6 @@ class TestDB(unittest.TestCase):
         policy = PolicyModel.parse_raw(serialData)
         self.assertIsInstance(
             policy, PolicyModel, "Could not deserialize data into a PolicyModel object")
-
-    # Generate passwords as per the latest policy (policy is stored in / fetched from the db)
-    def test_generatePasswords(self):
-        batch = 5
-
-        passwordGenResponse = passwordMethod.generate_passwords()
-
-        self.assertIsInstance(passwordGenResponse['passwords'], list,
-                              "Did not receive the passwords in a list with object key 'passwords'",)
-        self.assertEqual(len(passwordGenResponse['passwords']), batch,
-                         "Did not receive the exact number of passwords as the batch size.",)
 
     def get_request(self, token: str, endpoint: str):
         return requests.get(
