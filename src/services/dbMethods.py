@@ -94,38 +94,6 @@ def update_application_password(
         return 1, "An error occured when updating the application password."
 
 
-async def update_all_application_passwords(
-    policy: PolicyModel,
-) -> Tuple[int, str]:
-    try:
-        conn, cursor = dbConn.get_connection()
-
-        cursor.execute("SELECT `id`, `password` FROM `pms`")
-        _cursor = cursor
-
-        for row in _cursor:
-            leaked = True
-
-            while leaked:
-                _password = passwordMethods.generate_passwords(1, policy)
-                if _password:
-                    leaked = passwordMethods.check_leaks_via_HIBP(
-                        _password[0]) > 0
-
-            cursor.execute(
-                "UPDATE `pms` SET `password`=%s WHERE `id`=%s",
-                (_password, row[0])  # type: ignore
-            )
-
-        conn.commit()
-        dbConn.release_connection(conn, cursor)
-
-        return 0, "Application passwords updated successfully."
-
-    except:
-        return 1, "An error occured when rotating the application passwords."
-
-
 def get_all_application_password_pairs(
     username: str,
 ) -> Tuple[Union[list[ApplicationModel], None], str]:

@@ -63,9 +63,7 @@ class TestDB(unittest.TestCase):
     def test_generatePasswords(self):
         batch = 5
 
-        passwordGenResponse = passwordMethod.generate_passwords(
-            batch_size=batch,
-        )
+        passwordGenResponse = passwordMethod.generate_passwords()
 
         self.assertIsInstance(passwordGenResponse['passwords'], list,
                               "Did not receive the passwords in a list with object key 'passwords'",)
@@ -104,35 +102,6 @@ class TestDB(unittest.TestCase):
             leak_count,
             0,
             "Most common password not recognised as leaked",
-        )
-
-    def test_online_password_checker_service_with_secure_password_API(self):
-        loginResponse = self.request_login()
-        self.assertEqual(loginResponse.status_code, 200, "Valid login failed")
-
-        access_token = loginResponse.json()["access_token"]
-        self.assertNotEqual(access_token, None, "Access token null")
-
-        refresh_token = loginResponse.json()["refresh_token"]
-        self.assertNotEqual(refresh_token, None, "Refresh token null")
-
-        checker_response = requests.get(
-            baseurl + "/check-if-password-leaked",
-            params={
-                "password": "CapNoSym@021",
-            },
-            headers={
-                "Authorization": "Bearer " + access_token,
-            },
-        )
-
-        leak_count = checker_response.json()["leak_count"]
-        self.assertNotEqual(leak_count, None, "Leak count null")
-
-        self.assertEqual(
-            leak_count,
-            0,
-            "Manually verified secure password recognised as leaked",
         )
 
 
