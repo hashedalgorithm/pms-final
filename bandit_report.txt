@@ -1,0 +1,132 @@
+Run started:2025-02-09 18:56:43.829627
+
+Test results:
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/plugins/b608_hardcoded_sql_expressions.html
+   Location: ./src/services/dbMethods.py:30:14
+29	        cursor.execute(
+30	            f"SELECT * FROM nextgensec_mpass WHERE username = %s", (username))
+31	        dbConn.release_connection(conn, cursor)
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/plugins/b324_hashlib.html
+   Location: ./src/services/passwordMethods.py:26:22
+25	
+26	    hashed_password = hashlib.sha1(
+27	        password.encode("utf-8")).hexdigest().upper()
+28	    prefix = hashed_password[:5]
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/plugins/b113_request_without_timeout.html
+   Location: ./src/services/passwordMethods.py:31:15
+30	
+31	    response = requests.get(
+32	        hibp_url + prefix,
+33	    )
+34	
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/blacklists/blacklist_calls.html#b311-random
+   Location: ./src/services/passwordMethods.py:166:22
+165	    for _ in range(requiredLength):
+166	        randomIndex = random.randint(0, len(password) - 1)
+167	        randomCharacterIndex = random.randint(0, len(allowedCharacters) - 1)
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/blacklists/blacklist_calls.html#b311-random
+   Location: ./src/services/passwordMethods.py:167:31
+166	        randomIndex = random.randint(0, len(password) - 1)
+167	        randomCharacterIndex = random.randint(0, len(allowedCharacters) - 1)
+168	        randomCharacter = allowedCharacters[randomCharacterIndex]
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/blacklists/blacklist_calls.html#b311-random
+   Location: ./src/services/passwordMethods.py:200:12
+199	
+200	    index = random.randint(0, len(allowedCharacters) - 1)
+201	    return allowedCharacters[index]
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/plugins/b113_request_without_timeout.html
+   Location: ./src/tests/tests_api.py:76:15
+75	    def get_request(self, token: str, endpoint: str):
+76	        return requests.get(
+77	            baseurl + endpoint,
+78	            headers={
+79	                "Authorization": "Bearer " + token,
+80	            },
+81	        )
+82	
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/plugins/b113_request_without_timeout.html
+   Location: ./src/tests/tests_api.py:84:15
+83	    def post_request(self, token: str, endpoint: str):
+84	        return requests.post(
+85	            baseurl + endpoint,
+86	            headers={
+87	                "Authorization": "Bearer " + token,
+88	            },
+89	        )
+90	
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.2/plugins/b113_request_without_timeout.html
+   Location: ./src/tests/tests_api.py:101:27
+100	
+101	        checker_response = requests.get(
+102	            baseurl + "/check-if-password-leaked",
+103	            params={
+104	                "password": "password",
+105	            },
+106	            headers={
+107	                "Authorization": "Bearer " + access_token,
+108	            },
+109	        )
+110	        self.assertEqual(
+
+--------------------------------------------------
+
+Code scanned:
+	Total lines of code: 1116
+	Total lines skipped (#nosec): 0
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 0
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 3
+		Medium: 5
+		High: 1
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 4
+		Medium: 1
+		High: 4
+Files skipped (0):
