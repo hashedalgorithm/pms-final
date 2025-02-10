@@ -1,134 +1,63 @@
 from decouple import config
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi_jwt_auth import AuthJWT
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from models.enums import AccessLevel
 from models.userModel import LoginModel, UserModel
-from pydantic import BaseSettings
 import services.redis_sessionlist as sessionlist
 from services.dbMethods import user_login
 
-router = APIRouter(
-    tags=["auth"],
-)
+auth_bp = Blueprint('auth', __name__)
 
-
-class Settings(BaseSettings):
-    authjwt_secret_key: str = str(config("JWT_SECRET_KEY", cast=str))
-    authjwt_access_token_expires: int = int(
-        config("JWT_ACCESS_T_EXPIRES", cast=int))
-    authjwt_refresh_token_expires: int = int(
-        config("JWT_REFRESH_T_EXPIRES", cast=int))
-    authjwt_denylist_enabled: bool = True
-    authjwt_denylist_token_checks: set = {"access", "refresh"}
-
-
-@AuthJWT.load_config  # type: ignore
-def get_config():
-    return Settings()
-
-
-@router.post("/login")
-def login(loginUser: LoginModel, authorize: AuthJWT = Depends()):
+@auth_bp.route("/login", methods=["POST"])
+def login():
     try:
-        user_model: UserModel
+        data = request.json
+        login_user = LoginModel(**data)
+        login_result = user_login(username=login_user.username, password=login_user.password)
+        if not login_result:
+            return jsonify({"detail": "Invalid credentials"}), 401
 
-        login_result = user_login(
-            username=loginUser.username, password=loginUser.password)
-        if login_result:
-            user_model = login_result
-        else:
-            raise HTTPException(
-                status_code=401,
-                detail="Incorrect username or password",
-            )
+        user = login_result
 
-        access_token = authorize.create_access_token(
-            subject=user_model.username,
-            fresh=False,
-            user_claims={"claims": user_model.json()},
-        )
-
-        refresh_token = authorize.create_refresh_token(
-            subject=user_model.username,
-            user_claims={"claims": user_model.json()},
-        )
+        access_token = create_access_token(identity=user.json(), fresh=False)
+        refresh_token = create_refresh_token(identity=user.json())
 
         sessionlist.add_session_tokens(
-            access_jti=authorize.get_jti(access_token),
-            refresh_jti=authorize.get_jti(refresh_token),
+            access_jti=get_jwt_identity(),
+            refresh_jti=get_jwt_identity(),
         )
 
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-        }
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong",
-        )
+        return jsonify({"access_token": access_token, "refresh_token": refresh_token}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
 
-
-@router.post("/login/new")
-def fresh_login(loginUser: LoginModel, authorize: AuthJWT = Depends()):
+@auth_bp.route("/login/new", methods=["POST"])
+def fresh_login():
     try:
-        user_model: UserModel
+        data = request.json
+        login_user = LoginModel(**data)
+        login_result = user_login(username=login_user.username, password=login_user.password)
+        if not login_result:
+            return jsonify({"detail": "Invalid credentials"}), 401
 
-        login_result = user_login(
-            username=loginUser.username, password=loginUser.password)
-        if login_result:
-            user_model = login_result
-        else:
-            raise HTTPException(
-                status_code=401,
-                detail="Incorrect username or password",
-            )
+        user = login_result
 
-        access_token = authorize.create_access_token(
-            subject=user_model.username,
-            fresh=True,
-            user_claims={"claims": user_model.json()},
-        )
+        access_token = create_access_token(identity=user.json(), fresh=True)
 
-        sessionlist.add_session_tokens(
-            access_jti=authorize.get_jti(access_token),
-        )
+        sessionlist.add_session_tokens(access_jti=get_jwt_identity())
 
-        return {
-            "access_token": access_token,
-        }
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong",
-        )
+        return jsonify({"access_token": access_token}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
 
-
-@router.post("/logout")
-def logout(authorize: AuthJWT = Depends()):
+@auth_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
     try:
-        authorize.jwt_required()
-
-        jti = _get_jti(authorize)
-        if jti is not None:
+        jti = get_jwt_identity()
+        if jti:
             sessionlist.delete_session_tokens(jti=jti)
 
-        return {
-            "detail": "User successfully logged out",
-        }
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong",
-        )
-
-
-def _get_jti(authorize: AuthJWT = Depends()):
-    jwt = authorize.get_raw_jwt()
-    if isinstance(jwt, dict) and jwt is not None:
-        try:
-            return str(jwt["jti"])
-        except:
-            return None
-    else:
-        return None
+        return jsonify({"detail": "Successfully logged out"}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500

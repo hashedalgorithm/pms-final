@@ -1,62 +1,38 @@
-import csv
-import io
-
-from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi_jwt_auth import AuthJWT
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.enums import AccessLevel
 from models.userModel import UserModel
 import services.dbMethods as dbMethods
 import services.passwordMethods as passwordMethods
 
-router = APIRouter(
-    tags=["password"],
-)
+password_bp = Blueprint('password', __name__)
 
-
-@router.get("/generatePasswords")
-def generate_passwords(authorize: AuthJWT = Depends()):
+@password_bp.route("/generatePasswords", methods=["GET"])
+@jwt_required()
+def generate_passwords():
     try:
-        authorize.jwt_required()
-        raw = authorize.get_raw_jwt()
+        user_claims = get_jwt_identity()
+        user = UserModel.parse_raw(user_claims)  # type: ignore
 
-        if not raw:
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
-
-        user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
-
-        if (user_model.access_level.value != AccessLevel.admin.value):
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        if user.access_level.value != AccessLevel.admin.value:
+            return jsonify({"detail": "Forbidden"}), 403
 
         policy = dbMethods.get_policy()
         if policy:
             passwords = passwordMethods.generate_passwords(policy)
 
             if passwords:
-                return {"passwords": passwords}
-        raise
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong when generating the password(s)",
-        )
+                return jsonify({"passwords": passwords}), 200
+        return jsonify({"detail": "Failed to generate passwords"}), 500
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
 
-
-@router.get("/checkIfPasswordLeaked")
-def check_password_leak(password: str, authorize: AuthJWT = Depends()):
+@password_bp.route("/checkIfPasswordLeaked", methods=["GET"])
+@jwt_required()
+def check_password_leak():
     try:
-        authorize.jwt_required()
-
+        password = request.args.get("password")
         leak_count = passwordMethods.check_leaks_via_HIBP(password)
-
-        return {"leak_count": leak_count}
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong when checking for password leak.",
-        )
+        return jsonify({"leak_count": leak_count}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500

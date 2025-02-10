@@ -1,181 +1,112 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi_jwt_auth import AuthJWT
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.enums import AccessLevel
 import services.dbMethods as dbMethods
 import services.passwordMethods as passwordMethods
 from models.userModel import UserModel
 
-router = APIRouter(
-    tags=["accounts"],
-)
+accounts_bp = Blueprint('accounts', __name__)
 
-
-@router.get("/addApplicationCreds")
-def add_application_creds(username: str, application_name: str, password: str, authorize: AuthJWT = Depends()):
+@accounts_bp.route("/addApplicationCreds", methods=["GET"])
+@jwt_required()
+def add_application_creds():
     try:
-        authorize.jwt_required()
-        raw = authorize.get_raw_jwt()
+        user_claims = get_jwt_identity()
+        user = UserModel.parse_raw(user_claims)  # type: ignore
 
-        if not raw:
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        if user.access_level.value != AccessLevel.admin.value:
+            return jsonify({"detail": "Forbidden"}), 403
 
-        user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
+        data = request.args
+        username = data.get("username")
+        application_name = data.get("application_name")
+        password = data.get("password")
 
-        if (user_model.access_level.value != AccessLevel.admin.value):
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        result = dbMethods.add_application_password_pair(username, application_name, password)
 
-        passwords = dbMethods.add_application_password_pair(
-            username, application_name, password)
+        if not result:
+            return jsonify({"detail": "Failed to add credentials"}), 500
 
-        if (not passwords):
-            raise HTTPException(
-                status_code=500,
-                detail="Server Error",
-            )
+        return jsonify({"message": "Credentials added successfully"}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
 
-        return {"message": "Application password set successfully"}
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Server Error",
-        )
-
-
-@router.get("/getApplicationCreds")
-def get_application_creds(authorize: AuthJWT = Depends()):
+@accounts_bp.route("/getApplicationCreds", methods=["GET"])
+@jwt_required()
+def get_application_creds():
     try:
-        authorize.jwt_required()
-        raw = authorize.get_raw_jwt()
+        user_claims = get_jwt_identity()
+        user = UserModel.parse_raw(user_claims)  # type: ignore
 
-        if not raw:
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        passwords = dbMethods.get_all_application_password_pairs(user.username)
 
-        user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
+        if not passwords:
+            return jsonify({"detail": "No credentials found"}), 404
 
-        passwords = dbMethods.get_all_application_password_pairs(
-            user_model.username)
+        return jsonify({"passwords": passwords}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
 
-        if (not passwords):
-            raise HTTPException(
-                status_code=500,
-                detail="Something went wrong when fetching application passwords.",
-            )
-
-        return {"passwords": passwords}
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong when fetching application passwords.",
-        )
-
-
-@router.get("/addUser")
-def add_user(username: str, password: str, access_level: AccessLevel, authorize: AuthJWT = Depends()):
+@accounts_bp.route("/addUser", methods=["GET"])
+@jwt_required()
+def add_user():
     try:
-        authorize.jwt_required()
-        raw = authorize.get_raw_jwt()
+        user_claims = get_jwt_identity()
+        user = UserModel.parse_raw(user_claims)  # type: ignore
 
-        if not raw:
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error",
-            )
+        if user.access_level.value != AccessLevel.admin.value:
+            return jsonify({"detail": "Forbidden"}), 403
 
-        user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
-
-        if (user_model.access_level.value != AccessLevel.admin.value):
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        data = request.args
+        username = data.get("username")
+        password = data.get("password")
+        access_level = AccessLevel(data.get("access_level"))
 
         policy = dbMethods.get_policy()
 
         if not policy:
-            raise HTTPException(
-                status_code=500, detail="Internal Server Error")
+            return jsonify({"detail": "Policy not found"}), 500
 
-        if (not passwordMethods.validate_password(password, policy)):
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Password does not meet current password requirements.",
-            )
+        if not passwordMethods.validate_password(password, policy):
+            return jsonify({"detail": "Password does not meet policy requirements"}), 400
 
-        if (passwordMethods.check_leaks_via_HIBP(password) > 0):
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Password is leaked previously!",
-            )
+        if passwordMethods.check_leaks_via_HIBP(password) > 0:
+            return jsonify({"detail": "Password has been leaked"}), 400
 
-        ret_code, message = dbMethods.add_user(
-            username, password, access_level=access_level)
+        ret_code, message = dbMethods.add_user(username, password, access_level=access_level)
 
-        if (ret_code != 0):
-            raise HTTPException(
-                status_code=401,
-                detail=message,
-            )
+        if ret_code != 0:
+            return jsonify({"detail": message}), 400
 
-        return {"message": message}
+        return jsonify({"message": message}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
 
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Internal Server Error",
-        )
-
-
-@router.get("/changeUserPassword")
-def change_user_password(password: str, authorize: AuthJWT = Depends()):
+@accounts_bp.route("/changeUserPassword", methods=["GET"])
+@jwt_required(fresh=True)
+def change_user_password():
     try:
-        authorize.fresh_jwt_required()
-        raw = authorize.get_raw_jwt()
+        user_claims = get_jwt_identity()
+        user = UserModel.parse_raw(user_claims)  # type: ignore
 
-        if not raw:
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        data = request.args
+        password = data.get("password")
 
-        user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
         policy = dbMethods.get_policy()
         if not policy:
-            raise
+            return jsonify({"detail": "Policy not found"}), 500
 
-        if (not passwordMethods.validate_password(password, policy)):
-            raise HTTPException(
-                status_code=401,
-                detail="Password does not meet current password requirements.",
-            )
+        if not passwordMethods.validate_password(password, policy):
+            return jsonify({"detail": "Password does not meet policy requirements"}), 400
 
-        if (passwordMethods.check_leaks_via_HIBP(password) > 0):
-            raise HTTPException(
-                status_code=401,
-                detail="Password has appeared in leaks online, please use a different one.",
-            )
+        if passwordMethods.check_leaks_via_HIBP(password) > 0:
+            return jsonify({"detail": "Password has been leaked"}), 400
 
-        ret_code, message = dbMethods.change_user_pass(
-            user_model.username, password)
+        ret_code, message = dbMethods.change_user_pass(user.username, password)
 
-        if (ret_code != 0):
-            raise HTTPException(
-                status_code=401,
-                detail=message,
-            )
+        if ret_code != 0:
+            return jsonify({"detail": message}), 400
 
-        return {"message": message}
-
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong",
-        )
+        return jsonify({"message": message}), 200
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500

@@ -1,23 +1,25 @@
-import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi_jwt_auth.exceptions import AuthJWTException
-from routers import auth, password, policy, accounts
+from flask import Flask, jsonify
+from flask_jwt_extended import JWTManager
+from routers.auth import auth_bp
+from routers.password import password_bp
+from routers.policy import policy_bp
+from routers.accounts import accounts_bp
 
-app = FastAPI()
-app.include_router(policy.router)
-app.include_router(password.router)
-app.include_router(auth.router)
-app.include_router(accounts.router)
+app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = "your_jwt_secret_key"  # Change this to your secret key
+jwt = JWTManager(app)
 
+app.register_blueprint(auth_bp, url_prefix="/auth")
+app.register_blueprint(password_bp, url_prefix="/password")
+app.register_blueprint(policy_bp, url_prefix="/policy")
+app.register_blueprint(accounts_bp, url_prefix="/accounts")
 
-@app.exception_handler(AuthJWTException)
-def authjwt_exception_handler(request: Request, exc: AuthJWTException):
-    return JSONResponse(
-        status_code=exc.status_code,  # type: ignore
-        content={"detail": exc.message},  # type: ignore
-    )
-
+@app.errorhandler(Exception)
+def handle_exception(e):
+    response = e.get_response()
+    response.data = jsonify({"detail": str(e)})
+    response.content_type = "application/json"
+    return response
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True)
+    app.run(debug=True)

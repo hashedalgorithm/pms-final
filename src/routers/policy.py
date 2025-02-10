@@ -1,59 +1,35 @@
 import uuid
-from datetime import datetime, timedelta
-from time import time
-
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi_jwt_auth import AuthJWT
+from datetime import datetime
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.enums import AccessLevel
 from models.policyModel import CreatedBy, PolicyModel, Rules
 from models.userModel import UserModel
 import services.dbMethods as dbMethods
 
-router = APIRouter(
-    tags=["policy"],
-)
+policy_bp = Blueprint('policy', __name__)
 
-
-@router.post("/setPolicy")
-def set_policy(
-    min_upper_case_letters: int = 1,
-    min_lower_case_letters: int = 1,
-    min_digits: int = 1,
-    min_symbols: int = 1,
-    min_length: int = 8,
-    authorize: AuthJWT = Depends(),
-):
+@policy_bp.route("/setPolicy", methods=["POST"])
+@jwt_required()
+def set_policy():
     try:
-        authorize.jwt_required()
-        raw = authorize.get_raw_jwt()
+        user_claims = get_jwt_identity()
+        user = UserModel.parse_raw(user_claims)  # type: ignore
 
-        if not raw:
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        if user.access_level.value != AccessLevel.admin.value:
+            return jsonify({"detail": "Forbidden"}), 403
 
-        user_model = UserModel.parse_raw(raw["claims"])  # type: ignore
+        data = request.json
+        min_upper_case_letters = data.get("min_upper_case_letters", 1)
+        min_lower_case_letters = data.get("min_lower_case_letters", 1)
+        min_digits = data.get("min_digits", 1)
+        min_symbols = data.get("min_symbols", 1)
+        min_length = data.get("min_length", 8)
 
-        if (user_model.access_level.value != AccessLevel.admin.value):
-            raise HTTPException(
-                status_code=401,
-                detail="Server Error - Forbidden",
-            )
+        if any(param is None for param in [min_upper_case_letters, min_lower_case_letters, min_digits, min_symbols, min_length]):
+            return jsonify({"detail": "Missing parameters"}), 400
 
-        if (
-            min_upper_case_letters == None
-            or min_lower_case_letters == None
-            or min_digits == None
-            or min_symbols == None
-            or min_length == None
-        ):
-            return HTTPException(
-                status_code=500,
-                detail="Missing parameters",
-            )
-
-        policy_model = PolicyModel(
+        policy = PolicyModel(
             id=uuid.uuid4(),
             created_at=datetime.utcnow().timestamp(),
             created_by=CreatedBy(admin_id=uuid.uuid4()),
@@ -66,33 +42,21 @@ def set_policy(
             ),
         )
 
-        # Store the created PolicyModel via DB methods
-        result = dbMethods.add_policy(policy_model)
+        dbMethods.add_policy(policy)
+        return jsonify({"message": "Policy Updated"}), 200
 
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Internal Server Error",
-        )
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
 
-
-@router.get("/getPolicy")
-def get_policy(
-    authorize: AuthJWT = Depends(),
-):
+@policy_bp.route("/getPolicy", methods=["GET"])
+@jwt_required()
+def get_policy():
     try:
-        authorize.jwt_required()
-
         policy = dbMethods.get_policy()
 
         if policy:
-            return {
-                "policy": policy.json(),
-            }
+            return jsonify({"policy": policy.json()}), 200
 
-        raise
-    except:
-        raise HTTPException(
-            status_code=500,
-            detail="Internal Server Error",
-        )
+        return jsonify({"detail": "Policy not found"}), 404
+    except Exception:
+        return jsonify({"detail": "Internal Server Error"}), 500
